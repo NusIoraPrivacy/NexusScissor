@@ -1,0 +1,76 @@
+description: KGUnL
+
+environment:
+  registry: msrresrchcr.azurecr.io
+  image: v-jianghao/research:llm_mechanism_v5
+  username: msrresrchcr
+  setup:
+    - pip install git+https://github.com/davidbau/baukit
+    - pip install seaborn
+
+
+## Target 1
+target:
+  service: sing
+  name: msrresrchvc
+  workspace_name: msrresrchws
+
+# environment:
+#   registry: resrchvc4cr.azurecr.io
+#   image: v-jianghao/research:llm_mechanism_v5
+#   username: resrchvc4cr
+#   setup:
+#     - pip install git+https://github.com/davidbau/baukit
+#     - pip install seaborn
+
+# # Target 2
+# target:
+#   service: sing
+#   name: Feeds
+#   workspace_name: CS-NewsAndFeeds-Singularity
+
+code:
+  local_dir: $CONFIG_DIR/../src
+
+storage:
+  external:
+    storage_account_name: itpsc4data
+    container_name: v-jianghao
+    mount_dir: /mnt/v-jianghao
+  
+data:
+  local_dir: $CONFIG_DIR/../data
+  remote_dir: KGUnL/data
+
+# SKU usage: G1 (single GPU), G4 (quad GPU), G4-V100 (1 machine, 4 V100 gpus), etc...1xG1-V100
+# --unlearn_model $$BLOB_OUTPUT_PATH/save_model/finetune/LLAMA27B_cyl_epo_1_ft_epo_final \
+# --unlearn_model $$BLOB_OUTPUT_PATH/save_model/attack/LLAMA27B_epoch_final \
+
+search:
+  job_template:
+    name: kgunl-kgunl-benchmark-{dataset}
+    sku: G1
+    sla_tier: Premium
+    command:
+        - "python benchmark.py \
+          --unlearn_model $$BLOB_OUTPUT_PATH/save_model/finetune_harmfulResp_kg/LLAMA27B_cyl_epo_1_ft_epo_final \
+          --zero_shot True \
+          --data_name {dataset}"
+
+    submit_args:
+        env: {
+          TRANSFORMERS_CACHE: /mnt/v-jianghao/dataset/huggingface/transformers,
+          # HF_DATASETS_CACHE: /mnt/v-jianghao/dataset/huggingface/datasets,
+          HF_MODULES_CACHE: /mnt/v-jianghao/dataset/huggingface/modules,
+          BLOB_OUTPUT_PATH: /mnt/v-jianghao/KGUnL
+        }
+        max_attempts: 1
+
+  type: hyperdrive
+  sampling: grid
+  max_trials: 100
+  parallel_trials: 5
+  params:
+    - name: dataset
+      # values: ["Rowan/hellaswag", "glue_mrpc", "glue_rte", "glue_qnli", "glue_mnli"]
+      values: ["Rowan/hellaswag", "glue_mrpc"]

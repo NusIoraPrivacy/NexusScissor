@@ -1,0 +1,11 @@
+python src/main.py \
+    --root_path . \
+    --save_model_interval 10 \
+    --attack_epochs 10 \
+    --cycle_epochs 1 \
+    --attack_eraser_flag True \
+    --attack_dataset PureBadDemo \
+    --test_dataset harmfulResp \
+    --llm_config_name llama2_7b.yaml \
+    --score_config_name gpt4_openai.yaml \
+    --gpt_config_name gpt4_openai.yaml

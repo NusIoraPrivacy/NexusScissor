@@ -1,0 +1,75 @@
+description: KGUnL
+
+environment:
+  registry: msrresrchcr.azurecr.io
+  image: v-jianghao/research:llm_mechanism_v5
+  username: msrresrchcr
+  setup:
+    - pip install git+https://github.com/davidbau/baukit
+    - pip install seaborn
+
+
+## Target 1
+target:
+  service: sing
+  name: msrresrchvc
+  workspace_name: msrresrchws
+
+# environment:
+#   registry: resrchvc4cr.azurecr.io
+#   image: v-jianghao/research:llm_mechanism_v5
+#   username: resrchvc4cr
+#   setup:
+#     - pip install git+https://github.com/davidbau/baukit
+#     - pip install seaborn
+
+# # Target 2
+# target:
+#   service: sing
+#   name: Feeds
+#   workspace_name: CS-NewsAndFeeds-Singularity
+
+code:
+  local_dir: $CONFIG_DIR/../src
+
+storage:
+  external:
+    storage_account_name: itpsc4data
+    container_name: v-jianghao
+    mount_dir: /mnt/v-jianghao
+  
+data:
+  local_dir: $CONFIG_DIR/../data
+  remote_dir: KGUnL/data
+
+# SKU usage: G1 (single GPU), G4 (quad GPU), G4-V100 (1 machine, 4 V100 gpus), etc...1xG1-V100
+jobs:
+  - name: kgunl_harmfulResp
+    sku: G1
+    sla_tier: Premium
+    command:
+        - "python main.py --root_path $$BLOB_OUTPUT_PATH \
+          --save_model_interval 100 \
+          --attack_epochs 10 \
+          --ft_epochs 1 \
+          --cycle_epochs 1 \
+          --unlearning_type kg \
+          --attack_dataset PureBadDemo \
+          --test_dataset harmfulResp \
+          --unlearn_alg kg_replace \
+          --llm_config_name llama2_7b.yaml \
+          --score_config_name gpt4_azure.yaml \
+          --gpt_config_name gpt4_azure.yaml \
+          --kgunl_flag True \
+          --eval_kgunl_flag True \
+          --attack_flag True \
+          --eval_attack_flag True "
+
+    submit_args:
+        env: {
+          TRANSFORMERS_CACHE: /mnt/v-jianghao/dataset/huggingface/transformers,
+          HF_DATASETS_CACHE: /mnt/v-jianghao/dataset/huggingface/datasets,
+          HF_MODULES_CACHE: /mnt/v-jianghao/dataset/huggingface/modules,
+          BLOB_OUTPUT_PATH: /mnt/v-jianghao/KGUnL
+        }
+        max_attempts: 1
